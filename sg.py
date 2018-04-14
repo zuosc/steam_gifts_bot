@@ -25,6 +25,7 @@ logging.getLogger("requests").setLevel(logging.WARNING)
 
 def takebreak(sleep_time):
     logging.warning("休息一下~ " + str(sleep_time) + '秒')
+    print("---------------------------------------------------")
     time.sleep(sleep_time)
 
 
