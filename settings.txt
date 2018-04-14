@@ -1,6 +1,6 @@
 giveaways_from_banners=1
 group=1
-wishlist=0
+wishlist=1
 search_list=0
 random_list=1
 send_notify=0
