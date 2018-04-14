@@ -17,6 +17,10 @@ logging.basicConfig(
     datefmt='%Y-%m-%d %H:%M:%S',
     format='%(asctime)s %(message)s'
 )
+# 屏蔽在Ubuntu中，requests产生的日志。
+# Mac上设置level=logging.INFO就不会显示了，ubutnu中必须设置大于WARNING，很奇怪啊。
+# BUG FIX https://stackoverflow.com/questions/11029717/how-do-i-disable-log-messages-from-the-requests-library
+logging.getLogger("requests").setLevel(logging.WARNING)
 
 
 def takebreak(sleep_time):
