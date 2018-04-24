@@ -342,9 +342,9 @@ def get_next_page(requests):
 
 
 def set_notify(head, text):
-    """Set notify. Only on Linux"""
-    if not need_send_notify:
-        return 0
+    #"""Set notify. Only on Linux"""
+    #if not need_send_notify:
+    #    return 0
     try:
         sendurl = 'http://sc.ftqq.com/SCU5209T50ff781c69372d9b370387f5c079be01587ae52428055.send?'
         params = {'text': head, 'desp': text}
@@ -380,7 +380,7 @@ def check_won(count):
     if int(count) < int(soup):
         do_beep("won")
         set_notify("中奖了！！", "steamgifts 抽中游戏了！")
-        logging.info("中奖了！！", "steamgifts 抽中游戏了！")
+        logging.info("中奖了！！steamgifts 抽中游戏了！")
         work_with_win_file(True, soup)
         return soup
     elif int(count) > int(soup):
