@@ -3,6 +3,7 @@ group=1
 wishlist=1
 search_list=0
 random_list=1
+steamcn_list=1
 send_notify=0
 beep=0
 debug_mode=1

@@ -1,3 +1,5 @@
 /venv/*
 .idea/*
 /cookie.txt
+/__pycache__/*
+/.steamcn_headers.txt

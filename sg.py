@@ -8,6 +8,8 @@ import json
 import re
 import datetime
 import logging
+import util
+import steamcn
 
 version = "1.3.0"
 os.chdir(os.path.dirname(os.path.realpath(__file__)))
@@ -23,12 +25,6 @@ logging.basicConfig(
 logging.getLogger("requests").setLevel(logging.WARNING)
 
 
-def takebreak(sleep_time):
-    logging.warning("休息一下~ " + str(sleep_time) + '秒')
-    print("---------------------------------------------------")
-    time.sleep(sleep_time)
-
-
 def check_new_version(ver):
     try:
         if requests.get("https://raw.githubusercontent.com/4815162342lost/steam_gifts_bot/master/version").text.rstrip(
@@ -42,14 +38,6 @@ def check_new_version(ver):
                 requests.get("https://raw.githubusercontent.com/4815162342lost/steam_gifts_bot/master/whats_new").text)
     except Exception as e:
         logging.error("无法检测新版本. Github 不可用或者没有网络连接！\n" + e)
-
-
-def get_from_file(file_name):
-    """read data from files"""
-    logging.info("读取文件" + file_name + "中的内容")
-    result = {}
-    exec(open(file_name).read(), None, result)
-    return result
 
 
 def get_user_agent():
@@ -71,6 +59,9 @@ def get_func_list():
     if settings_list["wishlist"]:
         func_list.append("wishlist")
         logging.info("添加地址：wishlist...")
+    if settings_list["steamcn_list"]:
+        func_list.append("steamcn_list")
+        logging.info("添加蒸汽动力列表....")
     if settings_list["search_list"]:
         func_list.append("search")
         logging.info("添加地址：search...")
@@ -109,9 +100,19 @@ def get_requests(cookie, req_type):
                 page_number += 1
             except:
                 logging.info("愿望单站点不可用")
-                takebreak(30)
+                util.take_break(30)
                 chose = 0
                 break
+    elif req_type == "steamcn_list":
+        logging.info("请求蒸汽动力的私人邀请列表...")
+        try:
+            links = steamcn.get_steamcn_Invite()
+            for link in links:
+                enter_geaway(link)
+        except:
+            logging.info("获取或请求蒸汽动力私人邀请链接异常!!!!!")
+            util.take_break(30)
+            chose = 0
     elif req_type == "search":
         logging.info("请求search列表...")
         for current_search in what_search.values():
@@ -126,12 +127,12 @@ def get_requests(cookie, req_type):
                     get_game_links(r)
                     need_next = get_next_page(r)
                     page_number += 1
-                    takebreak(random.randint(3, 7))
+                    util.take_break(random.randint(3, 7))
                 except Exception as e:
                     logging.error("search站点不可用")
                     logging.error(e)
                     chose = 0
-                    takebreak(30)
+                    util.take_break(30)
                     break
             time.sleep(random.randint(8, 39))
     elif req_type == "group":
@@ -148,7 +149,7 @@ def get_requests(cookie, req_type):
             except Exception as e:
                 logging.error("group站点不可用")
                 logging.error(e)
-                takebreak(30)
+                util.take_break(30)
                 chose = 0
                 break
     elif req_type == "enteredlist":
@@ -164,7 +165,7 @@ def get_requests(cookie, req_type):
             except:
                 logging.info("entered站点不可用")
                 chose = 0
-                takebreak(30)
+                util.take_break(30)
                 break
         return entered_list
     elif req_type == "someone" and int(get_coins(get_requests(cookie, "coins_check"))) > int(threshold):
@@ -176,7 +177,7 @@ def get_requests(cookie, req_type):
         except:
             logging.error("随机站点不可用")
             chose = 0
-            takebreak(30)
+            util.take_break(30)
     elif req_type == "coins_check":
         try:
             r = requests.get("https://www.steamgifts.com/giveaways/search?type=wishlist", cookies=cookie,
@@ -185,7 +186,7 @@ def get_requests(cookie, req_type):
         except:
             logging.info("站点不可用")
             chose = 0
-            takebreak(30)
+            util.take_break(30)
             return 0
 
 
@@ -222,7 +223,7 @@ def enter_geaway(geaway_link):
     except:
         logging.error("异常：站点不可用")
         chose = 0
-        takebreak(300)
+        util.take_break(300)
         return True
     soup_enter = BeautifulSoup(r.text, "html.parser")
     for bad_word in forbidden_words:
@@ -248,6 +249,12 @@ def enter_geaway(geaway_link):
         return False
     link = soup_enter.find(class_="sidebar sidebar--wide").form
     if link != None:
+        al_link = link.find(class_="sidebar__entry-insert is-hidden")
+        if al_link is not None:
+            logging.info("已经参加此游戏的抽奖，跳过！")
+            util.take_break(random.randint(5, 60))
+            return False
+
         link = link.find_all("input")
         params = {"xsrf_token": link[0].get("value"), "do": "entry_insert", "code": link[2].get("value")}
         try:
@@ -256,13 +263,13 @@ def enter_geaway(geaway_link):
         except:
             logging.error("异常！站点不可用...")
             chose = 0
-            takebreak(300)
+            util.take_break(300)
             return True
         # print(r.text)
         if extract_coins["type"] == "success":
             coins = extract_coins["points"]
             logging.info("加入游戏: " + re.sub("[^A-Za-z0-9 +-.,:!()]", "", game).rstrip(" ") + " 的抽奖. 耗费体力: " + coins)
-            takebreak(random.randint(1, 120))
+            util.take_break(random.randint(1, 120))
             return False
         elif extract_coins["msg"] == "Not Enough Points":
             coins = get_coins(get_requests(cookie, "coins_check"))
@@ -275,25 +282,29 @@ def enter_geaway(geaway_link):
                 return False
     else:
         link = soup_enter.find(class_="sidebar__error is-disabled")
-        if link != None and link.get_text() == " Not Enough Points":
+        if link is None:
+            logging.info("未发现不可参加的原因，无效链接....")
+            util.take_break(random.randint(5, 60))
+            return False
+        elif link.get_text() == " Not Enough Points":
             logging.info("没有足够的体力抽奖游戏： " + str(geaway_link))
-            takebreak(random.randint(5, 60))
+            util.take_break(random.randint(5, 60))
             if int(get_coins(get_requests(cookie, "coins_check"))) < 10:
                 chose = 0
                 i_want_to_sleep = True
                 return True
         else:
             logging.info("Bot不能加入抽奖，原因：" + link.get_text())
-            featuredlink = soup_enter.select("div.featured__column span")
-            if featuredlink is not None:
-                takebreak(random.randint(5, 60))
+            featured_link = soup_enter.select("div.featured__column span")
+            if featured_link is not None:
+                util.take_break(random.randint(5, 60))
                 return False
             else:
                 logging.info("Critical error!")
                 with open("errors.txt", "a") as error:
-                    error.write(featuredlink + "\n")
+                    error.write(featured_link + "\n")
                 do_beep("critical")
-                logging.info(featuredlink)
+                logging.info(featured_link)
                 return False
         return False
 
@@ -342,8 +353,8 @@ def get_next_page(requests):
 
 
 def set_notify(head, text):
-    #"""Set notify. Only on Linux"""
-    #if not need_send_notify:
+    # """Set notify. Only on Linux"""
+    # if not need_send_notify:
     #    return 0
     try:
         sendurl = 'http://sc.ftqq.com/SCU5209T50ff781c69372d9b370387f5c079be01587ae52428055.send?'
@@ -421,7 +432,7 @@ check_new_version(version)
 chose = 0
 random.seed(os.urandom)
 headers = json.loads(get_user_agent())
-cookie = get_from_file("cookie.txt")
+cookie = util.get_from_file("cookie.txt")
 
 # try:
 #     r = requests.get("https://www.steamgifts.com/giveaways/search?type=wishlist", cookies=cookie, headers=headers)
@@ -430,17 +441,17 @@ cookie = get_from_file("cookie.txt")
 #     do_beep("coockie_exept")
 #     sys.exit(1)
 
-what_search = get_from_file("search.txt")
-takebreak(random.randint(2, 10))
+what_search = util.get_from_file("search.txt")
+util.take_break(random.randint(2, 10))
 coins = get_coins(get_requests(cookie, "coins_check"))
 nedd_next_page_for_entered_link = True
 entered_url = get_requests(cookie, "enteredlist")
 # func_list=("wishlist", "search", "someone")
 won_count = work_with_win_file(False, 0)
 
-settings_list = get_from_file("settings.txt")
-bad_games_name = get_from_file("black_list_games_name.txt").values()
-bad_giveaways_link = get_from_file("bad_giveaways_link.txt").values()
+settings_list = util.get_from_file("settings.txt")
+bad_games_name = util.get_from_file("black_list_games_name.txt").values()
+bad_giveaways_link = util.get_from_file("bad_giveaways_link.txt").values()
 get_func_list()
 i_want_to_sleep = False
 forbidden_words = (" ban", " fake", " bot", " not enter", " don't enter")
