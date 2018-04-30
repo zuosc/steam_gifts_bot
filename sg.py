@@ -113,6 +113,7 @@ def get_requests(cookie, req_type):
             logging.info("获取或请求蒸汽动力私人邀请链接异常!!!!!")
             util.take_break(30)
             chose = 0
+            break
     elif req_type == "search":
         logging.info("请求search列表...")
         for current_search in what_search.values():
