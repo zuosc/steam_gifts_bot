@@ -8,7 +8,7 @@ import util
 
 def get_steamcn_Invite():
     steamcn_url = 'https://steamcn.com/forum.php?mod=forumdisplay&fid=254&filter=typeid&typeid=495&orderby=dateline'
-    headers = eval(open('.steamcn_headers.txt').read())
+    headers = eval(open('steamcn_headers.json').read())
 
     util.take_break(random.randint(15, 30))
 

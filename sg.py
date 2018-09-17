@@ -104,13 +104,13 @@ def get_requests(cookie, req_type):
                 chose = 0
                 break
     elif req_type == "steamcn_list":
-        logging.info("请求蒸汽动力的私人邀请列表...")
+        logging.info("请求【蒸汽动力私人邀请】列表...")
         try:
             links = steamcn.get_steamcn_Invite()
             for link in links:
                 enter_geaway(link)
         except Exception as err:
-            logging.info("获取或请求蒸汽动力私人邀请链接异常!!!!!")
+            logging.info("获取【蒸汽动力私人邀请】链接异常!!!!!")
             logging.info(err)
             util.take_break(30)
             #chose = 0
@@ -269,7 +269,7 @@ def enter_geaway(geaway_link):
         # print(r.text)
         if extract_coins["type"] == "success":
             coins = extract_coins["points"]
-            logging.info("加入游戏: " + re.sub("[^A-Za-z0-9 +-.,:!()]", "", game).rstrip(" ") + " 的抽奖. 耗费体力: " + coins)
+            logging.info("加入游戏: " + re.sub("[^A-Za-z0-9 +-.,:!()]", "", game).rstrip(" ") + " 的抽奖. 剩余体力: " + coins)
             util.take_break(random.randint(1, 120))
             return False
         elif extract_coins["msg"] == "Not Enough Points":
